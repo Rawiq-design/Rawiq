@@ -1,19 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>رِواق - القرآن الكريم</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>رواق - القرآن الكريم</title>
+  <meta name="theme-color" content="#0b1f29"/>
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <div class="logo"><span>ر</span></div>
+        <div class="title">
+          <b>رواق</b>
+          <small>القرآن الكريم — تلاوة</small>
+        </div>
+      </div>
+      <div class="pillbtns">
+        <button class="iconbtn" id="helpBtn" title="مساعدة">؟</button>
+        <button class="iconbtn" id="debugBtn" title="تشخيص">⚙</button>
+      </div>
+    </div>
+  </div>
 
-<h1>📖 رِواق</h1>
+  <div class="wrap">
+    <div class="card">
+      <div class="card-inner">
+        <div class="row">
+          <div class="field" style="flex:1.2">
+            <label>ابحث عن سورة</label>
+            <input id="search" placeholder="اكتب اسم السورة…" autocomplete="off"/>
+          </div>
+          <div class="field" style="flex:1.4">
+            <label>السورة</label>
+            <select id="surah"></select>
+          </div>
+          <div class="field">
+            <label>القارئ</label>
+            <select id="reciter">
+              <option value="ar.alafasy">العفاسي</option>
+              <option value="ar.abdulbasitmurattal">عبدالباسط (مرتل)</option>
+            </select>
+          </div>
+          <div class="field" style="flex:0.7;min-width:140px">
+            <label>&nbsp;</label>
+            <button class="btn" id="playBtn">تشغيل</button>
+          </div>
+        </div>
 
-<select id="surahSelect"></select>
-<button onclick="loadSurah()">عرض السورة</button>
+        <div class="audioCard">
+          <audio id="player" controls preload="none"></audio>
+          <div class="status" id="status">اختر سورة ثم اضغط تشغيل.</div>
+        </div>
 
-<div id="content"></div>
+        <div class="ayahs" id="ayahs"></div>
+      </div>
+    </div>
+    <div class="footerSpace"></div>
+  </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=16" defer></script>
 </body>
 </html>
