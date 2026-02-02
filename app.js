@@ -246,8 +246,14 @@ function renderFav(){
 function populateJuzSelect(){
   if(!juzSelect) return;
   const opts = [];
-  for(let i=1;i<=30;i++) opts.push(`<option value="${i}">${i}</option>`);
+  for(let i=1;i<=30;i++) opts.push(`<option value="${i}">الجزء ${i}</option>`);
   juzSelect.innerHTML = opts.join('');
+}
+
+// Session Surah select is optional; keep for backward compatibility
+function populateSessionSurahSelect(){
+  // older builds had a separate select; current UI uses the main selects.
+  return;
 }
 
 function renderJuzList(juzNo, ayahs){
