@@ -76,6 +76,9 @@ let state = {
   fontSize: 20,
 };
 
+
+function showEl(el){ if(!el) return; el.classList?.remove('hidden'); el.style.display='block'; }
+function hideEl(el){ if(!el) return; el.style.display='none'; el.classList?.add('hidden'); }
 function setStatus(text, kind='info'){
   statusEl.textContent = text;
   statusEl.style.color = (kind==='err') ? '#ffb7b7' : (kind==='ok' ? '#a7f3d0' : '');
@@ -659,7 +662,7 @@ function wireUI(){
 
   // Session
   if(btnSession){
-    btnSession.addEventListener('click', () => { if(sessionPanel) sessionPanel.style.display = 'block'; });
+    btnSession.addEventListener('click', () => { showEl(sessionPanel); });
   }
   const btnStopSession = $('#btnStopSession');
   if(btnStopSession){
@@ -667,7 +670,7 @@ function wireUI(){
       if(sessionTimer) { clearInterval(sessionTimer); sessionTimer=null; }
       try{ audioEl.pause(); audioEl.currentTime=0; }catch{}
       if(sessionStatusEl) sessionStatusEl.textContent = 'تم إيقاف الجلسة.';
-      if(sessionPanel) sessionPanel.style.display='none';
+      hideEl(sessionPanel);
     });
   }
   if(btnStartSession){
@@ -680,11 +683,11 @@ function wireUI(){
 
   // Plan
   if(btnPlan){
-    btnPlan.addEventListener('click', () => { loadPlanUI(); if(planPanel) planPanel.style.display = 'block'; });
+    btnPlan.addEventListener('click', () => { loadPlanUI(); showEl(planPanel); });
   }
   const closePlanBtn = $('#closePlan');
   if(closePlanBtn){
-    closePlanBtn.addEventListener('click', () => { if(planPanel) planPanel.style.display='none'; });
+    closePlanBtn.addEventListener('click', () => { hideEl(planPanel); });
   }
   if(btnCreatePlan){
     btnCreatePlan.addEventListener('click', () => {
