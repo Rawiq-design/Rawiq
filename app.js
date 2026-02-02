@@ -95,8 +95,20 @@ async function fetchJson(url){
   return res.json();
 }
 
+/* ---------- مودالات/بنلز بشكل مضمون (dialog أو div) ---------- */
+function openModal(el){
+  if(!el) return;
+  if(typeof el.showModal === 'function') el.showModal();
+  else el.style.display = 'block';
+}
+function closeModal(el){
+  if(!el) return;
+  if(typeof el.close === 'function') el.close();
+  else el.style.display = 'none';
+}
+
+/* -------------------- Surah list -------------------- */
 async function loadSurahList(){
-  // cache for 30 days
   const cache = storageGet('riwaq_surah_list_cache', null);
   const now = Date.now();
   if(cache && cache.ts && (now - cache.ts) < 30*24*60*60*1000 && Array.isArray(cache.data)){
@@ -117,12 +129,13 @@ function fillSelects(){
   reciterSelect.innerHTML = RECITERS.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
   reciterSelect.value = state.reciter;
 
+  // tafsirSelect موجود في HTML أصلاً
   tafsirSelect.value = state.tafsir;
 }
 
 function normalizeArabic(s){
   return (s||'')
-    .replace(/[\u064B-\u0652]/g, '') // tashkeel
+    .replace(/[\u064B-\u0652]/g, '')
     .replace(/ى/g,'ي')
     .replace(/أ|إ|آ/g,'ا')
     .replace(/ؤ/g,'و')
@@ -143,6 +156,7 @@ function copyText(text){
 function buildAyahCard(ayah, tafsirText){
   const wrap = document.createElement('div');
   wrap.className = 'ayah';
+  wrap.dataset.ayah = String(ayah.numberInSurah);
 
   const top = document.createElement('div');
   top.className = 'ayahTop';
@@ -230,7 +244,6 @@ function renderFav(){
     openBtn.className = 'btnMini';
     openBtn.textContent = 'فتح';
     openBtn.addEventListener('click', ()=>{
-      // switch to surah tab
       document.querySelector('[data-tab="surah"]').click();
       surahSelect.value = String(s.number);
       surahSelect.dispatchEvent(new Event('change'));
@@ -241,19 +254,12 @@ function renderFav(){
   }
 }
 
-// -------------------- JUZ --------------------
-
+/* -------------------- JUZ -------------------- */
 function populateJuzSelect(){
   if(!juzSelect) return;
   const opts = [];
   for(let i=1;i<=30;i++) opts.push(`<option value="${i}">الجزء ${i}</option>`);
   juzSelect.innerHTML = opts.join('');
-}
-
-// Session Surah select is optional; keep for backward compatibility
-function populateSessionSurahSelect(){
-  // older builds had a separate select; current UI uses the main selects.
-  return;
 }
 
 function renderJuzList(juzNo, ayahs){
@@ -286,11 +292,9 @@ function renderJuzList(juzNo, ayahs){
     openBtn.className = 'btnMini';
     openBtn.textContent = 'فتح في السورة';
     openBtn.addEventListener('click', async ()=>{
-      // switch to surah tab
       document.querySelector('[data-tab="surah"]').click();
       surahSelect.value = String(a.surahNumber);
       await loadSurahAndRender({ autoplay:false });
-      // scroll to ayah
       const target = document.querySelector(`[data-ayah="${a.numberInSurah}"]`);
       if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
     });
@@ -318,18 +322,24 @@ async function loadJuz(){
   }
 }
 
-// -------------------- KHATMA / SESSION --------------------
-
+/* -------------------- KHATMA / SESSION -------------------- */
 function getKhatma(){
   return storageGet('riwaq_khatma_v1', null);
 }
-
 function setKhatma(obj){
   storageSet('riwaq_khatma_v1', obj);
 }
 
+function savePlan({ days, startDate }){
+  const k = {
+    days: Math.max(1, Number(days || 30)),
+    startDate: startDate || new Date().toISOString().slice(0,10),
+    doneJuz: [],
+  };
+  setKhatma(k);
+}
+
 function computeTodayRange(k){
-  // day index starts at 1
   const start = new Date(k.startDate + 'T00:00:00');
   const now = new Date();
   const diffDays = Math.floor((now - start) / (24*60*60*1000)) + 1;
@@ -371,35 +381,37 @@ function renderPlan(){
   }
 }
 
-function openPanel(panel){
-  if(!panel) return;
-  panel.style.display = 'block';
-}
-function closePanel(panel){
-  if(!panel) return;
-  panel.style.display = 'none';
+function loadPlanUI(){
+  if(planDays){
+    const k = getKhatma();
+    planDays.value = String(k?.days || 30);
+  }
+  if(planStartDate){
+    const k = getKhatma();
+    planStartDate.value = k?.startDate || new Date().toISOString().slice(0,10);
+  }
+  renderPlan();
 }
 
+/* ---- Session ---- */
 function populateSessionSurahs(){
   if(!sessionSurahSelect) return;
   sessionSurahSelect.innerHTML = state.surahs
     .map(s=>`<option value="${s.number}">${s.number} - ${s.name}</option>`)
     .join('');
+  sessionSurahSelect.value = String(state.surahNo);
 }
 
 let sessionTimer = null;
-function startSession(){
-  const minutes = Number(sessionMinutes?.value || 10);
-  const surahNo = Number(sessionSurahSelect?.value || 1);
-  if(sessionCountdown) sessionCountdown.textContent = '';
 
-  // load surah and autoplay
+function startSession(minutes, surahNo){
+  const endAt = Date.now() + minutes*60*1000;
+  storageSet('riwaq_session_v1', { minutes, surahNo, endAt });
+
+  // افتح تبويب السورة وشغل تلقائي
   document.querySelector('[data-tab="surah"]').click();
   surahSelect.value = String(surahNo);
   loadSurahAndRender({ autoplay:true }).catch(()=>{});
-
-  const endAt = Date.now() + minutes*60*1000;
-  storageSet('riwaq_session_v1', { minutes, surahNo, endAt });
 
   if(sessionTimer) clearInterval(sessionTimer);
   sessionTimer = setInterval(()=>{
@@ -410,12 +422,14 @@ function startSession(){
     if(left <= 0){
       clearInterval(sessionTimer);
       sessionTimer = null;
-      try{ audio.pause(); }catch{}
+      try{ audioEl.pause(); }catch{}
       if(sessionCountdown) sessionCountdown.textContent = 'انتهت الجلسة ✅';
+      setStatus('انتهت جلسة العبادة ✅','ok');
     }
   }, 500);
 }
 
+/* -------------------- SURAH LOAD/RENDER -------------------- */
 async function loadSurahAndRender({ autoplay=false } = {}){
   const surahNo = Number(surahSelect.value || 1);
   state.surahNo = surahNo;
@@ -441,10 +455,6 @@ async function loadSurahAndRender({ autoplay=false } = {}){
 
   setStatus('جاري تحميل السورة…');
 
-  // We fetch:
-  // 1) audio+text edition (reciter)
-  // 2) tafsir edition
-  // NOTE: Some editions may occasionally fail; we'll show graceful error.
   try{
     const [audioData, tafsirData] = await Promise.all([
       fetchJson(`${API}/surah/${surahNo}/${encodeURIComponent(state.reciter)}`),
@@ -483,9 +493,7 @@ async function loadSurahAndRender({ autoplay=false } = {}){
 
 function renderFromPayload(payload){
   const q = normalizeArabic(searchInput.value);
-
   const tafMap = new Map(payload.tafsirAyahs.map(t => [t.numberInSurah, t.text]));
-
   const filtered = payload.ayahs.filter(a => {
     if(!q) return true;
     return normalizeArabic(a.text).includes(q);
@@ -505,8 +513,6 @@ function renderFromPayload(payload){
 }
 
 async function playSurahAudio(payload){
-  // AlQuran.cloud provides audio per ayah. We'll concatenate by sequential play.
-  // We'll play from the first ayah and auto-advance.
   const list = payload.ayahs.filter(a => !!a.audio);
   if(!list.length){
     setStatus('الصوت غير متاح لهذه السورة','err');
@@ -557,7 +563,6 @@ function wireUI(){
   tafsirSelect.addEventListener('change', () => loadSurahAndRender({ autoplay: false }));
 
   searchInput.addEventListener('input', () => {
-    // Re-render from cache if possible
     const surahNo = state.surahNo;
     const cacheKey = `riwaq_cache_${surahNo}_${state.reciter}_${state.tafsir}`;
     const cached = storageGet(cacheKey, null);
@@ -575,7 +580,6 @@ function wireUI(){
 
   btnReload.addEventListener('click', async () => {
     setStatus('تحديث…');
-    // Clear cache for this selection
     const cacheKey = `riwaq_cache_${state.surahNo}_${state.reciter}_${state.tafsir}`;
     try{ localStorage.removeItem(cacheKey); } catch{}
     await loadSurahAndRender({ autoplay: false });
@@ -601,11 +605,11 @@ function wireUI(){
     setStatus('تم مسح المفضلة');
   });
 
-  btnHelp.addEventListener('click', () => helpDialog.showModal());
-  closeHelp.addEventListener('click', () => helpDialog.close());
+  btnHelp.addEventListener('click', () => openModal(helpDialog));
+  closeHelp.addEventListener('click', () => closeModal(helpDialog));
 
-  btnSettings.addEventListener('click', () => settingsDialog.showModal());
-  closeSettings.addEventListener('click', () => settingsDialog.close());
+  btnSettings.addEventListener('click', () => openModal(settingsDialog));
+  closeSettings.addEventListener('click', () => closeModal(settingsDialog));
 
   fontSize.addEventListener('input', () => {
     const v = Number(fontSize.value);
@@ -623,18 +627,18 @@ function wireUI(){
 
   // Juz
   if(btnLoadJuz){
-    btnLoadJuz.addEventListener('click', () => {
-      const j = Number(juzSelect?.value || 1);
-      loadJuz(j);
-    });
+    btnLoadJuz.addEventListener('click', () => loadJuz());
   }
 
   // Session
   if(btnSession){
-    btnSession.addEventListener('click', () => sessionPanel?.showModal());
+    btnSession.addEventListener('click', () => {
+      if(sessionSurahSelect) sessionSurahSelect.value = String(state.surahNo);
+      openModal(sessionPanel);
+    });
   }
   if(btnCloseSession){
-    btnCloseSession.addEventListener('click', () => sessionPanel?.close());
+    btnCloseSession.addEventListener('click', () => closeModal(sessionPanel));
   }
   if(btnStartSession){
     btnStartSession.addEventListener('click', () => {
@@ -648,11 +652,11 @@ function wireUI(){
   if(btnPlan){
     btnPlan.addEventListener('click', () => {
       loadPlanUI();
-      planPanel?.showModal();
+      openModal(planPanel);
     });
   }
   if(btnClosePlan){
-    btnClosePlan.addEventListener('click', () => planPanel?.close());
+    btnClosePlan.addEventListener('click', () => closeModal(planPanel));
   }
   if(btnCreatePlan){
     btnCreatePlan.addEventListener('click', () => {
@@ -660,6 +664,7 @@ function wireUI(){
       const startDate = planStartDate?.value || new Date().toISOString().slice(0,10);
       savePlan({ days, startDate });
       loadPlanUI();
+      setStatus('تم إنشاء خطة الختم ✅','ok');
     });
   }
 }
@@ -680,16 +685,15 @@ async function init(){
   if(typeof settings.showTafsir === 'boolean') state.showTafsir = settings.showTafsir;
 
   applyFontSize(state.fontSize);
-  fontSize.value = String(state.fontSize);
-  defaultTafsirVis.value = state.showTafsir ? 'on' : 'off';
+  if(fontSize) fontSize.value = String(state.fontSize);
+  if(defaultTafsirVis) defaultTafsirVis.value = state.showTafsir ? 'on' : 'off';
 
-  // Fill lists
   try{
     setStatus('تحميل قائمة السور…');
     await loadSurahList();
     fillSelects();
     populateJuzSelect();
-    populateSessionSurahSelect();
+    populateSessionSurahs();   // ✅ دي كانت ناقصة
     wireUI();
     setStatus('جاهز');
 
