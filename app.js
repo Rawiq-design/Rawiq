@@ -30,6 +30,29 @@ const defaultTafsirVis = $('#defaultTafsirVis');
 
 const favListEl = $('#favList');
 
+// Juz tab
+const juzSelect = $('#juzSelect');
+const btnLoadJuz = $('#btnLoadJuz');
+const juzStatus = $('#juzStatus');
+const juzListEl = $('#juzList');
+
+// Khatma / Session
+const btnSession = $('#btnSession');
+const btnPlan = $('#btnPlan');
+const sessionPanel = $('#sessionPanel');
+const planPanel = $('#planPanel');
+const sessionMinutes = $('#sessionMinutes');
+const sessionSurahSelect = $('#sessionSurahSelect');
+const btnStartSession = $('#btnStartSession');
+const sessionCountdown = $('#sessionCountdown');
+const btnCloseSession = $('#btnCloseSession');
+const planDays = $('#planDays');
+const planStartDate = $('#planStartDate');
+const btnCreatePlan = $('#btnCreatePlan');
+const planToday = $('#planToday');
+const planList = $('#planList');
+const btnClosePlan = $('#btnClosePlan');
+
 const API = 'https://api.alquran.cloud/v1';
 
 // Common reciters available on AlQuran.cloud
@@ -216,6 +239,175 @@ function renderFav(){
     row.appendChild(openBtn);
     favListEl.appendChild(row);
   }
+}
+
+// -------------------- JUZ --------------------
+
+function populateJuzSelect(){
+  if(!juzSelect) return;
+  const opts = [];
+  for(let i=1;i<=30;i++) opts.push(`<option value="${i}">${i}</option>`);
+  juzSelect.innerHTML = opts.join('');
+}
+
+function renderJuzList(juzNo, ayahs){
+  if(!juzListEl) return;
+  juzListEl.innerHTML = '';
+  if(!ayahs.length){
+    juzListEl.innerHTML = `<div class="empty"><div class="emptyTitle">لا يوجد محتوى</div><div class="emptyText">تعذر تحميل الجزء.</div></div>`;
+    return;
+  }
+  const head = document.createElement('div');
+  head.className = 'empty';
+  head.innerHTML = `<div class="emptyTitle">الجزء ${juzNo}</div><div class="emptyText">يمكنك فتح أي آية داخل تبويب السورة.</div>`;
+  juzListEl.appendChild(head);
+
+  for(const a of ayahs){
+    const surah = state.surahs.find(s => s.number === a.surahNumber);
+    const surahName = surah ? surah.name : `سورة ${a.surahNumber}`;
+
+    const row = document.createElement('div');
+    row.className = 'ayah';
+    row.innerHTML = `
+      <div class="meta">
+        <div>سورة: <b>${surahName}</b></div>
+        <div class="badge">آية ${a.numberInSurah}</div>
+      </div>
+      <div class="text">${a.text}</div>
+    `;
+
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btnMini';
+    openBtn.textContent = 'فتح في السورة';
+    openBtn.addEventListener('click', async ()=>{
+      // switch to surah tab
+      document.querySelector('[data-tab="surah"]').click();
+      surahSelect.value = String(a.surahNumber);
+      await loadSurahAndRender({ autoplay:false });
+      // scroll to ayah
+      const target = document.querySelector(`[data-ayah="${a.numberInSurah}"]`);
+      if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+    });
+    row.appendChild(openBtn);
+    juzListEl.appendChild(row);
+  }
+}
+
+async function loadJuz(){
+  const juzNo = Number(juzSelect?.value || 1);
+  if(juzStatus) { juzStatus.textContent = 'جاري تحميل الجزء…'; juzStatus.style.color=''; }
+  try{
+    const data = await fetchJson(`${API}/juz/${juzNo}/quran-uthmani`);
+    const ayahs = (data.data?.ayahs || []).map(a => ({
+      surahNumber: a.surah?.number,
+      numberInSurah: a.numberInSurah,
+      text: a.text,
+    })).filter(a=>a.surahNumber);
+    if(juzStatus){ juzStatus.textContent = 'تم التحميل ✅'; juzStatus.style.color='var(--ok)'; }
+    renderJuzList(juzNo, ayahs);
+  } catch(e){
+    console.error(e);
+    if(juzStatus){ juzStatus.textContent = 'حصل خطأ في تحميل الجزء'; juzStatus.style.color='var(--err)'; }
+    renderJuzList(juzNo, []);
+  }
+}
+
+// -------------------- KHATMA / SESSION --------------------
+
+function getKhatma(){
+  return storageGet('riwaq_khatma_v1', null);
+}
+
+function setKhatma(obj){
+  storageSet('riwaq_khatma_v1', obj);
+}
+
+function computeTodayRange(k){
+  // day index starts at 1
+  const start = new Date(k.startDate + 'T00:00:00');
+  const now = new Date();
+  const diffDays = Math.floor((now - start) / (24*60*60*1000)) + 1;
+  const day = Math.max(1, diffDays);
+  const days = Math.max(1, Number(k.days||30));
+  const perDay = 30 / days;
+  const juzStart = Math.min(30, Math.max(1, Math.floor((day-1)*perDay) + 1));
+  const juzEnd = Math.min(30, Math.max(juzStart, Math.floor(day*perDay)));
+  return { day, days, juzStart, juzEnd };
+}
+
+function renderPlan(){
+  if(!planPanel || !planToday || !planList) return;
+  const k = getKhatma();
+  if(!k){
+    planToday.textContent = 'لم تبدأ خطة ختم بعد.';
+    planList.innerHTML = '';
+    return;
+  }
+  const { day, days, juzStart, juzEnd } = computeTodayRange(k);
+  const rangeText = (juzStart===juzEnd) ? `الجزء ${juzStart}` : `من الجزء ${juzStart} إلى ${juzEnd}`;
+  planToday.textContent = `اليوم ${day} من ${days} — المطلوب: ${rangeText}`;
+
+  const done = new Set(k.doneJuz || []);
+  planList.innerHTML = '';
+  for(let i=1;i<=30;i++){
+    const row = document.createElement('label');
+    row.className = 'checkRow';
+    row.innerHTML = `<input type="checkbox" ${done.has(i)?'checked':''} /> <span>الجزء ${i}</span>`;
+    const cb = row.querySelector('input');
+    cb.addEventListener('change', ()=>{
+      const k2 = getKhatma() || { startDate:k.startDate, days:k.days, doneJuz:[] };
+      const set = new Set(k2.doneJuz || []);
+      if(cb.checked) set.add(i); else set.delete(i);
+      k2.doneJuz = Array.from(set).sort((a,b)=>a-b);
+      setKhatma(k2);
+    });
+    planList.appendChild(row);
+  }
+}
+
+function openPanel(panel){
+  if(!panel) return;
+  panel.style.display = 'block';
+}
+function closePanel(panel){
+  if(!panel) return;
+  panel.style.display = 'none';
+}
+
+function populateSessionSurahs(){
+  if(!sessionSurahSelect) return;
+  sessionSurahSelect.innerHTML = state.surahs
+    .map(s=>`<option value="${s.number}">${s.number} - ${s.name}</option>`)
+    .join('');
+}
+
+let sessionTimer = null;
+function startSession(){
+  const minutes = Number(sessionMinutes?.value || 10);
+  const surahNo = Number(sessionSurahSelect?.value || 1);
+  if(sessionCountdown) sessionCountdown.textContent = '';
+
+  // load surah and autoplay
+  document.querySelector('[data-tab="surah"]').click();
+  surahSelect.value = String(surahNo);
+  loadSurahAndRender({ autoplay:true }).catch(()=>{});
+
+  const endAt = Date.now() + minutes*60*1000;
+  storageSet('riwaq_session_v1', { minutes, surahNo, endAt });
+
+  if(sessionTimer) clearInterval(sessionTimer);
+  sessionTimer = setInterval(()=>{
+    const left = Math.max(0, endAt - Date.now());
+    const mm = String(Math.floor(left/60000)).padStart(2,'0');
+    const ss = String(Math.floor((left%60000)/1000)).padStart(2,'0');
+    if(sessionCountdown) sessionCountdown.textContent = `الوقت المتبقي: ${mm}:${ss}`;
+    if(left <= 0){
+      clearInterval(sessionTimer);
+      sessionTimer = null;
+      try{ audio.pause(); }catch{}
+      if(sessionCountdown) sessionCountdown.textContent = 'انتهت الجلسة ✅';
+    }
+  }, 500);
 }
 
 async function loadSurahAndRender({ autoplay=false } = {}){
@@ -422,6 +614,48 @@ function wireUI(){
     storageSet('riwaq_settings', { ...storageGet('riwaq_settings', {}), showTafsir: on });
     document.querySelectorAll('.tafsir').forEach(el => el.style.display = on ? 'block' : 'none');
   });
+
+  // Juz
+  if(btnLoadJuz){
+    btnLoadJuz.addEventListener('click', () => {
+      const j = Number(juzSelect?.value || 1);
+      loadJuz(j);
+    });
+  }
+
+  // Session
+  if(btnSession){
+    btnSession.addEventListener('click', () => sessionPanel?.showModal());
+  }
+  if(btnCloseSession){
+    btnCloseSession.addEventListener('click', () => sessionPanel?.close());
+  }
+  if(btnStartSession){
+    btnStartSession.addEventListener('click', () => {
+      const minutes = Number(sessionMinutes?.value || 10);
+      const surahNo = Number(sessionSurahSelect?.value || state.surahNo);
+      startSession(minutes, surahNo);
+    });
+  }
+
+  // Plan
+  if(btnPlan){
+    btnPlan.addEventListener('click', () => {
+      loadPlanUI();
+      planPanel?.showModal();
+    });
+  }
+  if(btnClosePlan){
+    btnClosePlan.addEventListener('click', () => planPanel?.close());
+  }
+  if(btnCreatePlan){
+    btnCreatePlan.addEventListener('click', () => {
+      const days = Number(planDays?.value || 30);
+      const startDate = planStartDate?.value || new Date().toISOString().slice(0,10);
+      savePlan({ days, startDate });
+      loadPlanUI();
+    });
+  }
 }
 
 async function init(){
@@ -448,6 +682,8 @@ async function init(){
     setStatus('تحميل قائمة السور…');
     await loadSurahList();
     fillSelects();
+    populateJuzSelect();
+    populateSessionSurahSelect();
     wireUI();
     setStatus('جاهز');
 

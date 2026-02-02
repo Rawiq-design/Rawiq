@@ -66,6 +66,42 @@
 
         <div class="smallNote">ملاحظة: أول تشغيل يحتاج ضغط زر تشغيل بسبب سياسة المتصفح.</div>
 
+        <div class="khatmaCard">
+          <div class="khatmaTitle">ختم القرآن</div>
+          <div class="khatmaActions">
+            <button id="btnSession" class="primary">ابدأ جلسة عبادة</button>
+            <button id="btnPlan" class="ghost">خطة ختم القرآن</button>
+          </div>
+          <div id="sessionBox" class="khatmaBox hidden">
+            <div class="khatmaRow">
+              <label class="khatmaLabel">مدة الجلسة</label>
+              <select id="sessionMinutes" class="select">
+                <option value="10">10 دقائق</option>
+                <option value="20">20 دقيقة</option>
+                <option value="30" selected>30 دقيقة</option>
+              </select>
+              <button id="btnStartSession" class="chip">ابدأ</button>
+              <button id="btnStopSession" class="chip">إيقاف</button>
+            </div>
+            <div id="sessionStatus" class="smallNote"></div>
+          </div>
+          <div id="planBox" class="khatmaBox hidden">
+            <div class="khatmaRow">
+              <label class="khatmaLabel">ابدأ من</label>
+              <input id="planStart" class="input" type="date" />
+              <label class="khatmaLabel">المدة</label>
+              <select id="planDays" class="select">
+                <option value="30" selected>30 يوم</option>
+                <option value="20">20 يوم</option>
+                <option value="15">15 يوم</option>
+              </select>
+              <button id="btnCreatePlan" class="chip">إنشاء/تحديث</button>
+            </div>
+            <div id="planToday" class="smallNote"></div>
+            <div id="planProgress" class="planProgress"></div>
+          </div>
+        </div>
+
         <div class="divider"></div>
 
         <div class="ayahHeader">
@@ -80,9 +116,23 @@
       </div>
 
       <div class="tabPanel hidden" id="tab-juz">
-        <div class="empty">
-          <div class="emptyTitle">قريبًا</div>
-          <div class="emptyText">ميزة اختيار الجزء هتتضاف في تحديث قريب.</div>
+        <div class="card">
+          <div class="controls">
+            <div class="field">
+              <label class="label">الجزء</label>
+              <select id="juzSelect" class="select"></select>
+            </div>
+            <div class="field">
+              <label class="label">بحث داخل الجزء</label>
+              <input id="juzSearch" class="input" type="text" placeholder="اكتب كلمة (اختياري)…" />
+            </div>
+          </div>
+          <div class="row">
+            <button id="btnLoadJuz" class="primary">تحميل الجزء</button>
+            <span id="juzStatus" class="status">جاهز</span>
+          </div>
+          <div class="divider"></div>
+          <div id="juzList" class="ayahList"></div>
         </div>
       </div>
 
