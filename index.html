@@ -1,65 +1,146 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>رواق - القرآن الكريم</title>
-  <meta name="theme-color" content="#0b1f29"/>
-  <link rel="stylesheet" href="style.css?v=16">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>رواق - القرآن الكريم (تلاوة وتفسير)</title>
+  <meta name="description" content="تلاوة القرآن الكريم مع عرض النص والتفسير (الجلالين/الميسر) بشكل بسيط وسريع." />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="topbar">
-    <div class="wrap topbar-inner">
-      <div class="brand">
-        <div class="logo"><span>ر</span></div>
-        <div class="title">
-          <b>رواق</b>
-          <small>القرآن الكريم — تلاوة</small>
-        </div>
-      </div>
-      <div class="pillbtns">
-        <button class="iconbtn" id="helpBtn" title="مساعدة">؟</button>
-        <button class="iconbtn" id="debugBtn" title="تشخيص">⚙</button>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">ر</div>
+      <div class="brandText">
+        <div class="brandTitle">رواق</div>
+        <div class="brandSub">القرآن الكريم — تلاوة وتفسير</div>
       </div>
     </div>
-  </div>
+    <div class="actions">
+      <button id="btnSettings" class="iconBtn" title="الإعدادات">⚙️</button>
+      <button id="btnHelp" class="iconBtn" title="مساعدة">?</button>
+    </div>
+  </header>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="card-inner">
-        <div class="row">
-          <div class="field" style="flex:1.2">
-            <label>ابحث عن سورة</label>
-            <input id="search" placeholder="اكتب اسم السورة…" autocomplete="off"/>
-          </div>
-          <div class="field" style="flex:1.4">
+  <main class="container">
+    <section class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="surah">السورة</button>
+        <button class="tab" data-tab="juz">الجزء</button>
+        <button class="tab" data-tab="fav">المفضلة</button>
+      </div>
+
+      <div class="tabPanel" id="tab-surah">
+        <div class="grid">
+          <div class="field">
             <label>السورة</label>
-            <select id="surah"></select>
+            <select id="surahSelect"></select>
           </div>
           <div class="field">
             <label>القارئ</label>
-            <select id="reciter">
-              <option value="ar.alafasy">العفاسي</option>
-              <option value="ar.abdulbasitmurattal">عبدالباسط (مرتل)</option>
+            <select id="reciterSelect"></select>
+          </div>
+          <div class="field">
+            <label>التفسير</label>
+            <select id="tafsirSelect">
+              <option value="ar.jalalayn">الجلالين</option>
+              <option value="ar.muyassar">الميسر</option>
             </select>
           </div>
-          <div class="field" style="flex:0.7;min-width:140px">
-            <label>&nbsp;</label>
-            <button class="btn" id="playBtn">تشغيل</button>
+          <div class="field">
+            <label>بحث عن آية</label>
+            <input id="searchInput" type="search" placeholder="اكتب كلمة للبحث داخل السورة…" />
           </div>
         </div>
 
-        <div class="audioCard">
-          <audio id="player" controls preload="none"></audio>
-          <div class="status" id="status">اختر سورة ثم اضغط تشغيل.</div>
+        <div class="row">
+          <button id="btnPlay" class="primary">تشغيل</button>
+          <button id="btnStop" class="ghost">إيقاف</button>
+          <button id="btnReload" class="ghost">تحديث</button>
+          <span id="status" class="status">جاهز</span>
         </div>
 
-        <div class="ayahs" id="ayahs"></div>
-      </div>
-    </div>
-    <div class="footerSpace"></div>
-  </div>
+        <div class="audioWrap">
+          <audio id="audio" controls preload="none"></audio>
+        </div>
 
-<script src="app.js?v=16" defer></script>
+        <div class="smallNote">ملاحظة: أول تشغيل يحتاج ضغط زر تشغيل بسبب سياسة المتصفح.</div>
+
+        <div class="divider"></div>
+
+        <div class="ayahHeader">
+          <div class="ayahHeaderTitle">النص + التفسير</div>
+          <div class="ayahHeaderActions">
+            <button id="btnToggleTafsir" class="chip">إظهار/إخفاء التفسير</button>
+            <button id="btnSaveFav" class="chip">⭐ حفظ السورة</button>
+          </div>
+        </div>
+
+        <div id="ayahList" class="ayahList"></div>
+      </div>
+
+      <div class="tabPanel hidden" id="tab-juz">
+        <div class="empty">
+          <div class="emptyTitle">قريبًا</div>
+          <div class="emptyText">ميزة اختيار الجزء هتتضاف في تحديث قريب.</div>
+        </div>
+      </div>
+
+      <div class="tabPanel hidden" id="tab-fav">
+        <div class="row between">
+          <div>
+            <div class="emptyTitle">المفضلة</div>
+            <div class="emptyText">اختصر وصولك للسور اللي بتحبها.</div>
+          </div>
+          <button id="btnClearFav" class="ghost">مسح</button>
+        </div>
+        <div id="favList" class="favList"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>مصدر البيانات: AlQuran.cloud (Text/Audio/Tafsir)</div>
+    </footer>
+  </main>
+
+  <dialog id="helpDialog" class="dialog">
+    <div class="dialogHeader">
+      <div class="dialogTitle">مساعدة</div>
+      <button id="closeHelp" class="iconBtn">✕</button>
+    </div>
+    <div class="dialogBody">
+      <ul>
+        <li>اختار السورة والقارئ ثم اضغط <b>تشغيل</b>.</li>
+        <li>التفسير يظهر تحت كل آية ويمكن إخفاؤه من زر <b>إظهار/إخفاء التفسير</b>.</li>
+        <li>لو حصل خطأ: جرّب <b>تحديث</b> أو غيّر القارئ/التفسير.</li>
+      </ul>
+      <div class="smallNote">لو أنت على GitHub Pages: استنى دقيقة أول مرة (build & cache).</div>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDialog" class="dialog">
+    <div class="dialogHeader">
+      <div class="dialogTitle">الإعدادات</div>
+      <button id="closeSettings" class="iconBtn">✕</button>
+    </div>
+    <div class="dialogBody">
+      <div class="grid2">
+        <div class="field">
+          <label>حجم الخط</label>
+          <input id="fontSize" type="range" min="16" max="28" value="20" />
+        </div>
+        <div class="field">
+          <label>عرض التفسير افتراضيًا</label>
+          <select id="defaultTafsirVis">
+            <option value="on">تشغيل</option>
+            <option value="off">إيقاف</option>
+          </select>
+        </div>
+      </div>
+      <div class="smallNote">الإعدادات بتتحفظ على نفس الجهاز.</div>
+    </div>
+  </dialog>
+
+  <script src="./app.js"></script>
 </body>
 </html>
