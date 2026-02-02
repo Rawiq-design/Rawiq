@@ -742,3 +742,13 @@ async function init(){
 }
 
 init();
+// تشغيل جلسة العبادة
+btnSession?.addEventListener('click', () => {
+  sessionPanel?.showModal();
+  });
+
+  // تشغيل خطة الختم
+  btnPlan?.addEventListener('click', () => {
+    renderPlan();
+      planPanel?.showModal();
+      });
