@@ -225,3 +225,18 @@ audio{width:100%}
 .dialogBody{padding:12px}
 .dialogBody ul{margin:0; padding:0 18px; color:var(--muted)}
 .dialogBody li{margin:8px 0}
+/* مسافة بين الأقسام الرئيسية */
+.container section {
+  margin-bottom: 30px;
+}
+
+/* تحسين شكل كارت الختم والجلسة */
+.khatmaCard {
+  margin-top: 20px;
+  padding: 15px;
+}
+
+/* مسافة داخل خطة الختم */
+.khatmaBox {
+  margin-top: 15px;
+}
